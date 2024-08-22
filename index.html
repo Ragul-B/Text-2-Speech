@@ -6,77 +6,132 @@
     <title>Advanced Text-to-Speech</title>
     <style>
         body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(45deg, #1a2a6c, #b21f1f, #fdbb2d);
+            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
             margin: 0;
-            background-color: #282c34;
             color: #fff;
+            background-size: 300% 300%;
+            animation: gradientShift 15s ease infinite;
         }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
         #container {
-            text-align: center;
-            background-color: #3a3f47;
+            background: rgba(0, 0, 0, 0.7);
             padding: 30px;
             border-radius: 15px;
-            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
-            max-width: 400px;
+            text-align: center;
+            box-shadow: 0px 8px 15px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
             width: 100%;
         }
-        #input {
+
+        h2 {
+            margin-bottom: 20px;
+            font-weight: 600;
+            font-size: 24px;
+        }
+
+        textarea {
             width: 100%;
-            padding: 12px;
-            margin: 20px 0;
+            padding: 15px;
             font-size: 16px;
-            border: none;
             border-radius: 8px;
-            box-shadow: inset 0px 2px 5px rgba(0, 0, 0, 0.2);
+            margin-bottom: 15px;
+            border: none;
+            resize: none;
+            box-shadow: inset 0px 3px 10px rgba(0, 0, 0, 0.3);
+            height: 100px;
         }
-        #voiceSelect {
+
+        select, input[type="range"] {
             width: 100%;
             padding: 10px;
             font-size: 16px;
             border-radius: 8px;
             border: none;
             margin-bottom: 20px;
-            background-color: #4a4f57;
+            background: #444;
             color: #fff;
         }
+
+        input[type="range"] {
+            cursor: pointer;
+        }
+
         button {
-            padding: 12px 24px;
-            font-size: 16px;
+            padding: 12px 30px;
+            font-size: 18px;
+            background: #ff6a00;
             color: #fff;
-            background-color: #61dafb;
             border: none;
             border-radius: 8px;
             cursor: pointer;
-            transition: background-color 0.3s ease;
+            transition: all 0.3s ease;
         }
+
         button:hover {
-            background-color: #21a1f1;
+            background: #e55e00;
+            box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.2);
         }
+
         #status {
             margin-top: 20px;
             font-size: 14px;
             font-style: italic;
             opacity: 0.8;
         }
+
+        .setting-label {
+            text-align: left;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        #charCount {
+            text-align: right;
+            margin-bottom: 10px;
+            font-size: 12px;
+            opacity: 0.7;
+        }
     </style>
 </head>
 <body>
 
 <div id="container">
-    <h2>Text to Speech</h2>
-    <textarea id="input" rows="4" placeholder="Enter text to speak..."></textarea>
+    <h2>Advanced Text to Speech</h2>
+    <textarea id="input" placeholder="Enter text to speak..."></textarea>
+    <div id="charCount">Characters: 0</div>
+
+    <div class="setting-label">Select Voice</div>
     <select id="voiceSelect"></select>
+
+    <div class="setting-label">Speech Rate (Speed)</div>
+    <input type="range" id="rate" min="0.5" max="2" step="0.1" value="1">
+
+    <div class="setting-label">Pitch</div>
+    <input type="range" id="pitch" min="0" max="2" step="0.1" value="1">
+
     <button onclick="speak()">Speak</button>
     <p id="status"></p>
 </div>
 
 <script>
-    // Populate voices on load
+    // Voice and settings initialization
     const voiceSelect = document.getElementById('voiceSelect');
+    const rateSlider = document.getElementById('rate');
+    const pitchSlider = document.getElementById('pitch');
+    const textInput = document.getElementById('input');
+    const statusElement = document.getElementById('status');
+    const charCount = document.getElementById('charCount');
     let voices = [];
 
     function populateVoiceList() {
@@ -90,6 +145,12 @@
             option.dataset.name = voice.name;
             voiceSelect.appendChild(option);
         });
+
+        // Load saved voice preference
+        const savedVoice = localStorage.getItem('preferredVoice');
+        if (savedVoice) {
+            voiceSelect.value = savedVoice;
+        }
     }
 
     populateVoiceList();
@@ -97,21 +158,41 @@
         speechSynthesis.onvoiceschanged = populateVoiceList;
     }
 
-    function speak() {
-        const textInput = document.getElementById('input').value;
-        const selectedVoiceIndex = voiceSelect.value;
-        const statusElement = document.getElementById('status');
+    // Save user preferences to local storage
+    function savePreferences() {
+        localStorage.setItem('preferredVoice', voiceSelect.value);
+        localStorage.setItem('rate', rateSlider.value);
+        localStorage.setItem('pitch', pitchSlider.value);
+    }
 
-        if (textInput.trim() === '') {
+    function loadPreferences() {
+        const savedRate = localStorage.getItem('rate');
+        const savedPitch = localStorage.getItem('pitch');
+
+        if (savedRate) rateSlider.value = savedRate;
+        if (savedPitch) pitchSlider.value = savedPitch;
+    }
+
+    loadPreferences();
+
+    // Character count functionality
+    textInput.addEventListener('input', () => {
+        charCount.textContent = `Characters: ${textInput.value.length}`;
+    });
+
+    function speak() {
+        if (textInput.value.trim() === '') {
             statusElement.textContent = "Please enter some text to speak.";
             statusElement.style.color = "red";
             return;
         }
 
-        const utterance = new SpeechSynthesisUtterance(textInput);
-        utterance.voice = voices[selectedVoiceIndex];
+        const utterance = new SpeechSynthesisUtterance(textInput.value);
+        utterance.voice = voices[voiceSelect.value];
+        utterance.rate = rateSlider.value;
+        utterance.pitch = pitchSlider.value;
 
-        // Add status updates
+        // Status updates
         utterance.onstart = () => {
             statusElement.textContent = "Speaking...";
             statusElement.style.color = "lightgreen";
@@ -124,6 +205,9 @@
             statusElement.textContent = "An error occurred while speaking.";
             statusElement.style.color = "red";
         };
+
+        // Save preferences
+        savePreferences();
 
         speechSynthesis.speak(utterance);
     }
