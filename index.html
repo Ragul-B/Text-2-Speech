@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Text-to-Speech</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #282c34;
+            color: #fff;
+        }
+        #container {
+            text-align: center;
+            background-color: #3a3f47;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.3);
+            max-width: 400px;
+            width: 100%;
+        }
+        #input {
+            width: 100%;
+            padding: 12px;
+            margin: 20px 0;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            box-shadow: inset 0px 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        #voiceSelect {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            border-radius: 8px;
+            border: none;
+            margin-bottom: 20px;
+            background-color: #4a4f57;
+            color: #fff;
+        }
+        button {
+            padding: 12px 24px;
+            font-size: 16px;
+            color: #fff;
+            background-color: #61dafb;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+        button:hover {
+            background-color: #21a1f1;
+        }
+        #status {
+            margin-top: 20px;
+            font-size: 14px;
+            font-style: italic;
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+
+<div id="container">
+    <h2>Text to Speech</h2>
+    <textarea id="input" rows="4" placeholder="Enter text to speak..."></textarea>
+    <select id="voiceSelect"></select>
+    <button onclick="speak()">Speak</button>
+    <p id="status"></p>
+</div>
+
+<script>
+    // Populate voices on load
+    const voiceSelect = document.getElementById('voiceSelect');
+    let voices = [];
+
+    function populateVoiceList() {
+        voices = speechSynthesis.getVoices();
+        voiceSelect.innerHTML = '';
+        voices.forEach((voice, index) => {
+            const option = document.createElement('option');
+            option.textContent = `${voice.name} (${voice.lang})`;
+            option.value = index;
+            option.dataset.lang = voice.lang;
+            option.dataset.name = voice.name;
+            voiceSelect.appendChild(option);
+        });
+    }
+
+    populateVoiceList();
+    if (speechSynthesis.onvoiceschanged !== undefined) {
+        speechSynthesis.onvoiceschanged = populateVoiceList;
+    }
+
+    function speak() {
+        const textInput = document.getElementById('input').value;
+        const selectedVoiceIndex = voiceSelect.value;
+        const statusElement = document.getElementById('status');
+
+        if (textInput.trim() === '') {
+            statusElement.textContent = "Please enter some text to speak.";
+            statusElement.style.color = "red";
+            return;
+        }
+
+        const utterance = new SpeechSynthesisUtterance(textInput);
+        utterance.voice = voices[selectedVoiceIndex];
+
+        // Add status updates
+        utterance.onstart = () => {
+            statusElement.textContent = "Speaking...";
+            statusElement.style.color = "lightgreen";
+        };
+        utterance.onend = () => {
+            statusElement.textContent = "Finished speaking.";
+            statusElement.style.color = "lightblue";
+        };
+        utterance.onerror = () => {
+            statusElement.textContent = "An error occurred while speaking.";
+            statusElement.style.color = "red";
+        };
+
+        speechSynthesis.speak(utterance);
+    }
+</script>
+
+</body>
+</html>
